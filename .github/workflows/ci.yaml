@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v5
+
+      - name: Installer NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Audit de sécurité
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Lint
+        run: npm run lint:check
+
+      - name: Package Firefox
+        run: npm run zip:firefox
+
+      - name: Package Chrome
+        run: npm run zip
+
+      - name: Artefact Firefox
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-firefox
+          path: .output/*-firefox.zip
+
+      - name: Artefact Chrome
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-chrome
+          path: .output/*-chrome.zip
