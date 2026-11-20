@@ -1,0 +1,43 @@
+name: Deploy Firefox addon
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v5
+
+      - name: Installer NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Build Firefox
+        run: npm run build:firefox
+
+      - name: Sign with web-ext
+        run: |
+          npx web-ext sign \
+            --api-key ${{ secrets.AMO_JWT_ISSUER }} \
+            --api-secret ${{ secrets.AMO_JWT_SECRET }} \
+            --channel unlisted \
+            --source-dir ./.output/firefox-mv2 \
+            --artifacts-dir ./signed
+
+      - name: Voir les fichiers signés
+        run: ls -la signed
+
+      - name: Artefact signé
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-firefox-signee
+          path: signed/*.xpi
